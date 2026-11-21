@@ -1,0 +1,70 @@
+﻿{
+    "realm":  "ferrovia",
+    "enabled":  true,
+    "roles":  {
+                  "realm":  [
+                                {
+                                    "name":  "TECNICO"
+                                },
+                                {
+                                    "name":  "AMMINISTRATORE"
+                                }
+                            ]
+              },
+    "clients":  [
+                    {
+                        "clientId":  "ferrovia-web",
+                        "name":  "Ferrovia Web (demo locale)",
+                        "enabled":  true,
+                        "protocol":  "openid-connect",
+                        "publicClient":  true,
+                        "directAccessGrantsEnabled":  true,
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  false
+                    }
+                ],
+    "users":  [
+                  {
+                      "username":  "tecnico",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "TecnicoDemo2026!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "TECNICO"
+                                     ],
+                      "firstName":  "Utente",
+                      "lastName":  "Tecnico",
+                      "email":  "tecnico@example.com",
+                      "requiredActions":  [
+
+                                          ]
+                  },
+                  {
+                      "username":  "amministratore",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "AdminDemo2026!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "AMMINISTRATORE"
+                                     ],
+                      "firstName":  "Utente",
+                      "lastName":  "Amministratore",
+                      "email":  "amministratore@example.com",
+                      "requiredActions":  [
+
+                                          ]
+                  }
+              ]
+}

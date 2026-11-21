@@ -1,0 +1,6 @@
+sistemaFerroviario\service\ControlloreSicurezzaTransitiTest.class
+sistemaFerroviario\communication\TransitoBloccatoExceptionJUnitTest.class
+sistemaFerroviario\service\VerificaModificaPercorsi.class
+sistemaFerroviario\service\SistemaFerroviarioJUnitTest.class
+sistemaFerroviario\communication\ViaggioTrenoSeparatoJUnitTest.class
+sistemaFerroviario\persistence\ArchivioPostgresJUnitTest.class
