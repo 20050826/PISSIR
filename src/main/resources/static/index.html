@@ -1,0 +1,565 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Ferroviario</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        header {
+            background: #12304a;
+            color: white;
+            padding: 22px 6%;
+        }
+        header h1 { margin: 0 0 6px; }
+        header p { margin: 0; color: #cbd5e1; }
+        main { max-width: 1100px; margin: 30px auto; padding: 0 18px; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px #0000000c;
+        }
+        h2 { margin-top: 0; color: #12304a; }
+        input, select, button {
+            padding: 11px;
+            margin: 5px 3px 5px 0;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+        }
+        input, select { max-width: 100%; }
+        button {
+            background: #176b87;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover { background: #12536a; }
+        .danger { background: #b42332; }
+        .hidden { display: none; }
+        .message { margin: 12px 0; white-space: pre-wrap; }
+        .error { color: #b42332; }
+        .success { color: #167344; }
+        .data {
+            overflow-x: auto;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 7px;
+        }
+        .role { font-weight: bold; color: #176b87; }
+        .dashboard-top { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+        .dashboard-top button { margin:0; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin:18px 0; }
+        .metric { background:#f1f7fa; border:1px solid #d9e8ee; border-radius:10px; padding:16px; }
+        .metric strong { display:block; font-size:29px; margin-top:7px; color:#12304a; }
+        .metric span { color:#526579; font-size:13px; }
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:14px; }
+        th,td { padding:13px 12px; text-align:left; border-bottom:1px solid #e4ebf1; vertical-align:top; }
+        th { color:#476176; background:#f5f8fb; font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+        tr:last-child td { border-bottom:0; }
+        .badge { display:inline-block; padding:5px 9px; border-radius:100px; background:#e7eef5; color:#314c64; font-size:12px; font-weight:700; }
+        .badge.ok { background:#dcfce7; color:#166534; }
+        .badge.warn { background:#fef3c7; color:#92400e; }
+        .badge.bad { background:#fee2e2; color:#991b1b; }
+        .muted { color:#66788a; }
+        .empty { color:#66788a; padding:14px 2px; }
+        .form-group { padding:12px 0; border-bottom:1px solid #e7edf3; }
+        .form-group:last-child { border-bottom:0; }
+        @media(max-width:650px) { header {padding:22px 18px;} main {margin:16px auto;} .card {padding:16px;} th,td {padding:10px 7px;} }
+        label { display: inline-block; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Sistema Ferroviario</h1>
+    <p>Centro di controllo del traffico ferroviario</p>
+</header>
+
+<main>
+    <section class="card" id="loginCard">
+        <h2>Accesso</h2>
+        <form id="loginForm">
+            <label for="username">Utente</label><br>
+            <input id="username" required placeholder="admin oppure tecnico"><br>
+            <label for="password">Password</label><br>
+            <input id="password" type="password" required placeholder="Password"><br>
+            <button type="submit">Accedi</button>
+        </form>
+        <div id="loginMessage" class="message"></div>
+        <p>Accedi con un utente del realm Keycloak ferrovia (ruolo TECNICO o AMMINISTRATORE).</p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+        <div class="card">
+            <h2>Dashboard</h2>
+            <div class="dashboard-top">
+                <span>Utente autenticato: <span id="role" class="role"></span></span>
+                <button onclick="refreshAll()">Aggiorna dati</button>
+                <button onclick="logout()">Esci</button>
+            </div>
+            <div id="summary" class="grid" aria-label="Riepilogo ferroviario"></div>
+            <div id="message" class="message" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="card">
+            <h2>Treni</h2>
+            <div id="treni" class="table-wrap">Caricamento...</div>
+        </div>
+
+        <div class="card">
+            <h2>Stazioni</h2>
+            <div id="stazioni" class="table-wrap">Caricamento...</div>
+        </div>
+
+        <div class="card">
+            <h2>Treni attesi per stazione</h2>
+            <p class="muted">Treni in arrivo (in viaggio verso la stazione) e in uscita (fermi in stazione con una tappa successiva).</p>
+            <div id="attesi" class="table-wrap">Caricamento...</div>
+        </div>
+
+        <div class="card">
+            <h2>Percorsi</h2>
+            <div id="percorsi" class="table-wrap">Caricamento...</div>
+        </div>
+
+        <div class="card">
+            <h2>Guasti</h2>
+            <div id="guasti" class="table-wrap">Caricamento...</div>
+        </div>
+
+        <div class="card">
+            <h2>Storico transiti</h2>
+            <p class="muted">Movimenti registrati dalla centrale, dal piu' recente al meno recente.</p>
+            <label for="filtroTrenoTransiti">Filtra per treno</label>
+            <select id="filtroTrenoTransiti" aria-label="Filtra lo storico per treno">
+                <option value="">Tutti i treni</option>
+            </select>
+            <p id="riepilogoTransiti" class="muted" role="status"></p>
+            <div id="transiti" class="table-wrap">Caricamento...</div>
+        </div>
+
+        <section id="adminPanel" class="card hidden">
+            <h2>Gestione percorsi</h2>
+
+            <h3>Assegna un percorso a un treno</h3>
+            <form id="assignRouteForm">
+                <input id="assignTrainId" required placeholder="Treno, es. T001">
+                <input id="assignRouteId" required placeholder="Percorso, es. P003">
+                <button type="submit">Assegna percorso</button>
+            </form>
+            <p>Il nuovo percorso sara' utilizzato alla prossima simulazione; non viene cambiato un viaggio in corso.</p>
+
+            <h3>Crea un percorso</h3>
+            <form id="createRouteForm">
+                <input id="routeId" required placeholder="ID, es. P004">
+                <input id="routeName" required placeholder="Nome del percorso">
+                <input id="routeStations" required
+                       placeholder="Stazioni separate da virgola, es. S01,S02">
+                <button type="submit">Crea percorso</button>
+            </form>
+
+            <h3>Aggiungi una stazione a un percorso</h3>
+            <form id="addStationForm">
+                <input id="addRouteId" required placeholder="ID percorso">
+                <input id="addStationId" required placeholder="ID stazione">
+                <button type="submit">Aggiungi stazione</button>
+            </form>
+
+            <h3>Rimuovi una stazione da un percorso</h3>
+            <form id="removeStationForm">
+                <input id="removeRouteId" required placeholder="ID percorso">
+                <input id="removeStationId" required placeholder="ID stazione">
+                <button type="submit">Rimuovi stazione</button>
+            </form>
+
+            <h3>Elimina un percorso intero</h3>
+            <form id="deleteRouteForm">
+                <input id="deleteRouteId" required placeholder="ID percorso">
+                <button class="danger" type="submit">Elimina percorso</button>
+            </form>
+            <h3>Sopprimi un treno fermo in stazione</h3>
+            <form id="suppressTrainForm">
+                <input id="suppressTrainId" required placeholder="Treno, es. T001">
+                <button class="danger" type="submit">Sopprimi treno</button>
+            </form>
+            <p>Possibile solo se il treno e' fermo in stazione.</p>
+        </section>
+
+        <section id="technicianPanel" class="card hidden">
+            <h2>Interventi tecnici</h2>
+            <p>Inserisci l'ID del guasto per prenderlo in carico o risolverlo.</p>
+
+            <form id="claimFaultForm">
+                <input id="claimFaultId" required placeholder="ID guasto, es. G011">
+                <button type="submit">Prendi in carico</button>
+            </form>
+
+            <form id="resolveFaultForm">
+                <input id="resolveFaultId" required placeholder="ID guasto, es. G011">
+                <button type="submit">Risolvi guasto</button>
+            </form>
+        </section>
+    </section>
+</main>
+
+<script>
+    let token = null;
+    let currentRole = null;
+
+    const $ = id => document.getElementById(id);
+
+    function showMessage(text, error = false) {
+        const box = $("message");
+        box.textContent = text;
+        box.className = "message " + (error ? "error" : "success");
+    }
+
+    async function api(url, options = {}) {
+        const headers = {
+            ...(options.body ? { "Content-Type": "application/json" } : {}),
+            ...(token ? { "Authorization": "Bearer " + token } : {}),
+            ...(options.headers || {})
+        };
+
+        const response = await fetch(url, { ...options, headers });
+        const text = await response.text();
+        let data;
+
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch {
+            data = { errore: text || "Risposta non valida" };
+        }
+
+        if (!response.ok) {
+            throw new Error(data.errore || data.message || ("HTTP " + response.status));
+        }
+
+        return data;
+    }
+
+    $("loginForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        $("loginMessage").textContent = "Accesso in corso...";
+
+        try {
+            const result = await api("/api/login", {
+                method: "POST",
+                body: JSON.stringify({
+                    username: $("username").value.trim(),
+                    password: $("password").value
+                })
+            });
+
+            token = result.token;
+            currentRole = result.ruolo;
+            $("loginCard").classList.add("hidden");
+            $("dashboard").classList.remove("hidden");
+            $("role").textContent = currentRole;
+            $("adminPanel").classList.toggle(
+                "hidden", currentRole !== "AMMINISTRATORE"
+            );
+            $("technicianPanel").classList.toggle(
+                "hidden", currentRole !== "TECNICO"
+            );
+
+            await refreshAll();
+        } catch (error) {
+            $("loginMessage").textContent = error.message;
+            $("loginMessage").className = "message error";
+        }
+    });
+
+    function escapeHtml(value) {
+        return String(value ?? "—").replace(/[&<>"']/g, char => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[char]);
+    }
+
+    function badge(value, tone = "") {
+        return `<span class="badge ${tone}">${escapeHtml(value)}</span>`;
+    }
+
+    function statusBadge(value) {
+        const state = String(value ?? "").toUpperCase();
+        const tone = ["RISOLTO", "OPERATIVA", "ATTIVO", "COMPLETATO"].includes(state) ? "ok"
+            : ["APERTO", "GUASTO", "ANOMALIA", "BLOCCATO", "SOPPRESSO"].includes(state) ? "bad"
+            : ["IN_CARICO", "IN_VIAGGIO", "IN_STAZIONE"].includes(state) ? "warn" : "";
+        return badge(value ?? "—", tone);
+    }
+
+    function table(columns, rows) {
+        if (!Array.isArray(rows) || !rows.length) return '<p class="empty">Nessun elemento disponibile.</p>';
+        return `<table><thead><tr>${columns.map(c => `<th scope="col">${escapeHtml(c.label)}</th>`).join("")}</tr></thead>` +
+            `<tbody>${rows.map(row => `<tr>${columns.map(c => `<td>${c.render ? c.render(row) : escapeHtml(row[c.key])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    }
+
+    // Jackson serializza gli Instant come secondi Unix (anche frazionari).
+    function formatInstant(value) {
+        if (value === null || value === undefined) return "—";
+        const date = typeof value === "number"
+            ? new Date(value * 1000)
+            : new Date(value);
+        return Number.isNaN(date.getTime())
+            ? "—"
+            : date.toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+    }
+
+    // I transiti sono restituiti dall'API gia' autenticata con il token della dashboard.
+    let storicoTransiti = [];
+    const MAX_TRANSITI_VISIBILI = 50;
+
+    function formatTransitoDate(value) {
+        if (value === null || value === undefined) return "—";
+        const date = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+        return Number.isNaN(date.getTime()) ? "—"
+            : date.toLocaleString("it-IT", {day:"2-digit", month:"2-digit", year:"numeric",
+                hour:"2-digit", minute:"2-digit", second:"2-digit"});
+    }
+
+    function mostraTransiti() {
+        const filtro = $("filtroTrenoTransiti").value;
+        const filtrati = storicoTransiti.filter(t => !filtro || t.idTreno === filtro);
+        // Non modifichiamo l'array originale: visualizziamo i piu' recenti in alto.
+        const ordinati = [...filtrati].sort((a, b) => Number(b.timestamp ?? 0) - Number(a.timestamp ?? 0));
+        const visibili = ordinati.slice(0, MAX_TRANSITI_VISIBILI);
+        $("riepilogoTransiti").textContent = `Visualizzati ${visibili.length} di ${filtrati.length} transiti`;
+        $("transiti").innerHTML = table([
+            { label:"Data e ora", render:t => escapeHtml(formatTransitoDate(t.timestamp)) },
+            { label:"Treno", key:"idTreno" },
+            { label:"Stazione", key:"idStazione" },
+            { label:"Movimento", render:t => t.tipoMovimento
+                ? badge(t.tipoMovimento, t.tipoMovimento === "INGRESSO" ? "ok" : "")
+                : badge("Non disponibile") }
+        ], visibili);
+    }
+
+    function aggiornaFiltroTransiti() {
+        const select = $("filtroTrenoTransiti");
+        const selezionato = select.value;
+        const treni = [...new Set(storicoTransiti.map(t => t.idTreno).filter(Boolean))].sort();
+        select.replaceChildren(new Option("Tutti i treni", ""),
+            ...treni.map(id => new Option(id, id)));
+        select.value = treni.includes(selezionato) ? selezionato : "";
+    }
+
+    $("filtroTrenoTransiti").addEventListener("change", mostraTransiti);
+
+    const views = {
+        treni: rows => table([
+            { label:"Treno", key:"id" },
+            { label:"Percorso assegnato", render:r => escapeHtml(r.idPercorso || "Non assegnato") },
+            { label:"Stato", render:r => statusBadge(r.stato) },
+            { label:"Ultima stazione", key:"stazionePrecedente" },
+            { label:"Prossima stazione", key:"prossimaStazione" },
+            { label:"ETA (in viaggio)", render:r => escapeHtml(formatInstant(r.arrivoStimato)) },
+            { label:"Ritardo ultimo arrivo", render:r => r.ultimoArrivoEffettivo
+                ? badge("+" + Math.max(0, Number(r.ritardoSecondi) || 0) + " s",
+                    Number(r.ritardoSecondi) > 0 ? "warn" : "ok") : "—" }
+        ], rows),
+        stazioni: rows => table([
+            { label:"Stazione", render:r => `<strong>${escapeHtml(r.id)}</strong><br><span class="muted">${escapeHtml(r.nome)}</span>` },
+            { label:"Operatività", render:r => badge(r.operativa ? "Operativa" : "Non operativa", r.operativa ? "ok" : "bad") },
+            { label:"Sensori", render:r => escapeHtml((r.sensori || []).length) },
+            { label:"Dettaglio sensori", render:r => (r.sensori || []).length ? r.sensori.map(sensor =>
+                `<div>${escapeHtml(sensor.id)}: ${badge(sensor.inAnomalia ? "Anomalia" : sensor.attivo ? "Attivo" : "Inattivo", sensor.inAnomalia ? "bad" : sensor.attivo ? "ok" : "")}</div>`).join("") : "—" }
+        ], rows),
+        attesi: rows => table([
+            { label:"Stazione", render:r => `<strong>${escapeHtml(r.idStazione)}</strong><br><span class="muted">${escapeHtml(r.nome)}</span>` },
+            { label:"In arrivo (da)", render:r => (r.inArrivo || []).length ? r.inArrivo.map(t =>
+                `<div>${escapeHtml(t.idTreno)} da ${escapeHtml(t.altraStazione)} · ETA ${escapeHtml(formatInstant(t.arrivoStimato))}</div>`).join("") : "—" },
+            { label:"In uscita (verso)", render:r => (r.inUscita || []).length ? r.inUscita.map(t =>
+                `<div>${escapeHtml(t.idTreno)} verso ${escapeHtml(t.altraStazione)}</div>`).join("") : "—" }
+        ], rows),
+        percorsi: rows => table([
+            { label:"ID", key:"id" }, { label:"Nome", key:"nome" },
+            { label:"Stazioni del percorso", render:r => escapeHtml((r.stazioni || []).join(" → ")) }
+        ], rows),
+        guasti: rows => table([
+            { label:"ID", key:"id" }, { label:"Stazione", key:"idStazione" },
+            { label:"Sensore", key:"idSensore" }, { label:"Descrizione", key:"descrizione" },
+            { label:"Stato", render:r => statusBadge(r.stato) }
+        ], rows)
+    };
+
+    async function refreshAll() {
+        const resources = [
+            ["treni", "/api/treni"], ["stazioni", "/api/stazioni"],
+            ["percorsi", "/api/percorsi"], ["guasti", "/api/guasti"],
+            ["transiti", "/api/transiti"], ["attesi", "/api/treni-attesi"]
+        ];
+        const results = await Promise.all(resources.map(async ([id,url]) => {
+            try {
+                const data = await api(url);
+                if (id === "transiti") {
+                    storicoTransiti = Array.isArray(data) ? data : [];
+                    aggiornaFiltroTransiti();
+                    mostraTransiti();
+                } else {
+                    $(id).innerHTML = views[id](data);
+                }
+                return [id, data];
+            } catch (error) {
+                $(id).textContent = "Errore caricamento: " + error.message;
+                if (id === "transiti") $("riepilogoTransiti").textContent = "";
+                return [id, null];
+            }
+        }));
+        const data = Object.fromEntries(results);
+        const count = key => Array.isArray(data[key]) ? data[key].length : "—";
+        const openFaults = Array.isArray(data.guasti) ? data.guasti.filter(g => g.stato !== "RISOLTO").length : "—";
+        const metrics = [["Treni monitorati",count("treni")],["Stazioni",count("stazioni")],
+            ["Percorsi",count("percorsi")],["Guasti non risolti",openFaults]];
+        $("summary").innerHTML = metrics.map(([label,value]) =>
+            `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("");
+    }
+
+
+    let aggiornamentoInCorso = false;
+
+    // Aggiorna automaticamente la dashboard ogni 2 secondi.
+    setInterval(async () => {
+        if (!token || document.hidden || aggiornamentoInCorso) {
+            return;
+        }
+
+        aggiornamentoInCorso = true;
+
+        try {
+            await refreshAll();
+        } catch (error) {
+            console.error("Aggiornamento dashboard:", error);
+        } finally {
+            aggiornamentoInCorso = false;
+        }
+    }, 2000);
+
+    async function submitAction(url, body, method = "POST") {
+        try {
+            const result = await api(url, {
+                method,
+                ...(body === undefined ? {} : { body: JSON.stringify(body) })
+            });
+            showMessage(result.messaggio || "Operazione completata");
+            await refreshAll();
+        } catch (error) {
+            showMessage(error.message, true);
+        }
+    }
+
+    $("assignRouteForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const idTreno = encodeURIComponent($("assignTrainId").value.trim());
+        submitAction("/api/treni/" + idTreno + "/percorso", {
+            idPercorso: $("assignRouteId").value.trim()
+        });
+        event.target.reset();
+    });
+
+    $("createRouteForm").addEventListener("submit", event => {
+        event.preventDefault();
+
+        const stazioni = $("routeStations").value
+            .split(",")
+            .map(id => id.trim())
+            .filter(Boolean);
+
+        submitAction("/api/percorsi", {
+            id: $("routeId").value.trim(),
+            nome: $("routeName").value.trim(),
+            stazioni
+        });
+
+        event.target.reset();
+    });
+
+    $("addStationForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = encodeURIComponent($("addRouteId").value.trim());
+
+        submitAction("/api/percorsi/" + id + "/stazioni", {
+            idStazione: $("addStationId").value.trim()
+        });
+
+        event.target.reset();
+    });
+
+    $("removeStationForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = encodeURIComponent($("removeRouteId").value.trim());
+
+        submitAction("/api/percorsi/" + id + "/stazioni/rimuovi", {
+            idStazione: $("removeStationId").value.trim()
+        });
+
+        event.target.reset();
+    });
+
+    $("deleteRouteForm").addEventListener("submit", event => {
+        event.preventDefault();
+
+        const id = encodeURIComponent($("deleteRouteId").value.trim());
+
+        if (!confirm("Vuoi eliminare definitivamente il percorso " + id + "?")) {
+            return;
+        }
+
+        submitAction("/api/percorsi/" + id, undefined, "DELETE");
+        event.target.reset();
+    });
+
+    $("suppressTrainForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = encodeURIComponent($("suppressTrainId").value.trim());
+        if (!confirm("Vuoi sopprimere il treno " + id + "? Dalla dashboard non si puo' annullare.")) {
+            return;
+        }
+        submitAction("/api/treni/" + id + "/sopprimi", {});
+        event.target.reset();
+    });
+
+    $("claimFaultForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = encodeURIComponent($("claimFaultId").value.trim());
+
+        submitAction("/api/guasti/" + id + "/prendi-in-carico", {});
+        event.target.reset();
+    });
+
+    $("resolveFaultForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = encodeURIComponent($("resolveFaultId").value.trim());
+
+        submitAction("/api/guasti/" + id + "/risolvi", {});
+        event.target.reset();
+    });
+
+    async function logout() {
+        try {
+            await api("/api/logout", {});
+        } catch (error) {
+            console.warn("Logout API:", error.message);
+        }
+
+        token = null;
+        currentRole = null;
+        $("dashboard").classList.add("hidden");
+        $("loginCard").classList.remove("hidden");
+        $("password").value = "";
+        $("loginMessage").textContent = "Hai effettuato la disconnessione.";
+    }
+</script>
+</body>
+</html>
