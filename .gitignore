@@ -1,0 +1,18 @@
+# Credenziali e configurazione locale
+Ferrovia_PISSIR_CORRETTO/.env
+CONFIGURAZIONE_SOLO_LOCALE.json
+Ferrovia_PISSIR_CORRETTO/infra/keycloak/ferrovia-realm.json
+Ferrovia_PISSIR_CORRETTO/infra/mosquitto/passwords
+Ferrovia_PISSIR_CORRETTO/infra/mosquitto/certs/
+
+# File generati
+target/
+Ferrovia_PISSIR_CORRETTO/data/
+*.log
+
+# IDE
+.idea/
+*.iml
+.settings/
+.classpath
+.project

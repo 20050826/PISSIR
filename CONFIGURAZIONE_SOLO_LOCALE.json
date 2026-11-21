@@ -1,0 +1,7 @@
+{
+    "POSTGRES_PASSWORD":  "AdminKeycloak2026!",
+    "KEYCLOAK_ADMIN_PASSWORD":  "AdminKeycloak2026!",
+    "MQTT_PASSWORD":  "Isabella.05",
+    "TECNICO_PASSWORD":  "TecnicoDemo2026!",
+    "AMMINISTRATORE_PASSWORD":  "AdminDemo2026!"
+}
